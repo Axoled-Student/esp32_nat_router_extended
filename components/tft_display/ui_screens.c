@@ -43,6 +43,12 @@ static const char *screen_names[] = {
     "About"
 };
 
+/* UI Configuration constants */
+#define UI_UPDATE_INTERVAL_MS   1000    /* Screen update interval in milliseconds */
+#define UI_TASK_STACK_SIZE      4096    /* Stack size for UI task */
+#define UI_TASK_PRIORITY        5       /* Priority for UI task */
+#define MAX_DISPLAYED_CLIENTS   5       /* Maximum clients to show on screen */
+
 /* UI Layout constants */
 #define STATUS_BAR_HEIGHT   30
 #define NAV_BAR_HEIGHT      40
@@ -376,8 +382,7 @@ void ui_draw_clients(void)
     }
     
     /* Client list */
-    int max_display = 5;
-    for (int i = 0; i < adapter_sta_list.num && i < max_display; i++) {
+    for (int i = 0; i < adapter_sta_list.num && i < MAX_DISPLAYED_CLIENTS; i++) {
         esp_netif_pair_mac_ip_t *sta = &adapter_sta_list.sta[i];
         
         /* Client card */
@@ -403,9 +408,9 @@ void ui_draw_clients(void)
         y += 42;
     }
     
-    if (adapter_sta_list.num > max_display) {
+    if (adapter_sta_list.num > MAX_DISPLAYED_CLIENTS) {
         char more_str[32];
-        snprintf(more_str, sizeof(more_str), "+%d more...", adapter_sta_list.num - max_display);
+        snprintf(more_str, sizeof(more_str), "+%d more...", adapter_sta_list.num - MAX_DISPLAYED_CLIENTS);
         tft_draw_text(MARGIN + CARD_PADDING, y + 5, more_str, COLOR_TEXT_SECONDARY, 1);
     }
 }
@@ -627,7 +632,7 @@ static void ui_task(void *pvParameters)
     ESP_LOGI(TAG, "UI task started");
     
     TickType_t last_wake_time = xTaskGetTickCount();
-    const TickType_t update_interval = pdMS_TO_TICKS(1000); /* Update every 1 second */
+    const TickType_t update_interval = pdMS_TO_TICKS(UI_UPDATE_INTERVAL_MS);
     
     while (ui_task_running) {
         ui_update();
@@ -650,9 +655,9 @@ esp_err_t ui_start_task(void)
     BaseType_t ret = xTaskCreate(
         ui_task,
         "ui_task",
-        4096,
+        UI_TASK_STACK_SIZE,
         NULL,
-        5,
+        UI_TASK_PRIORITY,
         &ui_task_handle
     );
     

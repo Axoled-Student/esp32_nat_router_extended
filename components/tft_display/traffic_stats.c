@@ -18,6 +18,10 @@
 
 static const char *TAG = "TRAFFIC_STATS";
 
+/* Configuration constants */
+#define STATS_UPDATE_INTERVAL_US    1000000  /* 1 second in microseconds */
+#define DEFAULT_MTU_SIZE            1500     /* Default MTU for traffic estimation */
+
 /* Global statistics */
 static traffic_stats_t g_stats = {0};
 static client_stats_t g_clients[MAX_CLIENTS] = {0};
@@ -78,7 +82,7 @@ esp_err_t traffic_stats_init(void)
         return ret;
     }
 
-    ret = esp_timer_start_periodic(g_update_timer, 1000000); /* 1 second */
+    ret = esp_timer_start_periodic(g_update_timer, STATS_UPDATE_INTERVAL_US);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start timer: %s", esp_err_to_name(ret));
         esp_timer_delete(g_update_timer);
@@ -160,8 +164,8 @@ void traffic_stats_update(void)
     /* Fallback: use LWIP link stats if available */
     #if LWIP_STATS && LINK_STATS
     struct stats_proto *link = &lwip_stats.link;
-    total_rx = (uint64_t)link->recv * 1500; /* Approximate using packet count * MTU */
-    total_tx = (uint64_t)link->xmit * 1500;
+    total_rx = (uint64_t)link->recv * DEFAULT_MTU_SIZE;
+    total_tx = (uint64_t)link->xmit * DEFAULT_MTU_SIZE;
     #endif
 #endif
 
