@@ -550,7 +550,7 @@ void ui_draw_settings(void)
     
     extern uint32_t my_ap_ip;
     if (my_ap_ip != 0) {
-        char ip_str[16];
+        char ip_str[32];
         esp_ip4_addr_t addr;
         addr.addr = my_ap_ip;
         snprintf(ip_str, sizeof(ip_str), "http://" IPSTR, IP2STR(&addr));

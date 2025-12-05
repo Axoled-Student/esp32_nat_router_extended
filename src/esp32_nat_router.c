@@ -45,9 +45,9 @@
 
 /* TFT Display support for ESP32-S3 */
 #if CONFIG_IDF_TARGET_ESP32S3
-#include "tft_display.h"
-#include "traffic_stats.h"
-#include "ui_screens.h"
+#include "tft_display/tft_display.h"
+#include "tft_display/traffic_stats.h"
+#include "tft_display/ui_screens.h"
 #define TFT_DISPLAY_ENABLED 1
 #else
 #define TFT_DISPLAY_ENABLED 0
