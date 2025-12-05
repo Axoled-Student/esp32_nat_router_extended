@@ -13,6 +13,7 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "router_globals.h"
+#include "lwip/stats.h"
 #include <string.h>
 
 static const char *TAG = "TRAFFIC_STATS";
@@ -136,10 +137,12 @@ void traffic_stats_update(void)
     uint64_t total_rx = 0;
     uint64_t total_tx = 0;
 
+    /* Try to get traffic stats using esp_netif API */
+#if CONFIG_ESP_NETIF_REPORT_DATA_TRAFFIC
     /* Get STA interface stats */
     if (sta_netif != NULL) {
-        esp_netif_stats_t sta_stats;
-        if (esp_netif_get_traffic_stats(sta_netif, &sta_stats) == ESP_OK) {
+        esp_netif_stats_t sta_stats = {0};
+        if (esp_netif_get_io_stats(sta_netif, true, &sta_stats) == ESP_OK) {
             total_rx += sta_stats.rx_bytes;
             total_tx += sta_stats.tx_bytes;
         }
@@ -147,12 +150,20 @@ void traffic_stats_update(void)
 
     /* Get AP interface stats */
     if (ap_netif != NULL) {
-        esp_netif_stats_t ap_stats;
-        if (esp_netif_get_traffic_stats(ap_netif, &ap_stats) == ESP_OK) {
+        esp_netif_stats_t ap_stats = {0};
+        if (esp_netif_get_io_stats(ap_netif, true, &ap_stats) == ESP_OK) {
             total_rx += ap_stats.rx_bytes;
             total_tx += ap_stats.tx_bytes;
         }
     }
+#else
+    /* Fallback: use LWIP link stats if available */
+    #if LWIP_STATS && LINK_STATS
+    struct stats_proto *link = &lwip_stats.link;
+    total_rx = (uint64_t)link->recv * 1500; /* Approximate using packet count * MTU */
+    total_tx = (uint64_t)link->xmit * 1500;
+    #endif
+#endif
 
     /* Update total bytes */
     g_stats.rx_bytes = total_rx;
