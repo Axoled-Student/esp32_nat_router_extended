@@ -43,6 +43,16 @@
 
 #include "router_globals.h"
 
+/* TFT Display support for ESP32-S3 */
+#if CONFIG_IDF_TARGET_ESP32S3
+#include "tft_display/tft_display.h"
+#include "tft_display/traffic_stats.h"
+#include "tft_display/ui_screens.h"
+#define TFT_DISPLAY_ENABLED 1
+#else
+#define TFT_DISPLAY_ENABLED 0
+#endif
+
 // On board LED
 #define BLINK_GPIO 2
 
@@ -881,6 +891,36 @@ void app_main(void)
         ESP_LOGW(TAG, "'nvs_namespace esp32_nat'");
         ESP_LOGW(TAG, "'nvs_set lock i32 -v 0'");
     }
+
+#if TFT_DISPLAY_ENABLED
+    /* Initialize TFT Display UI for ESP32-S3 */
+    int32_t tft_disabled = 0;
+    get_config_param_int("tft_disabled", &tft_disabled);
+    if (tft_disabled == 0)
+    {
+        ESP_LOGI(TAG, "Initializing TFT Display UI...");
+        if (ui_init() == ESP_OK)
+        {
+            ESP_LOGI(TAG, "TFT Display UI initialized successfully");
+            if (ui_start_task() == ESP_OK)
+            {
+                ESP_LOGI(TAG, "TFT Display UI task started");
+            }
+            else
+            {
+                ESP_LOGW(TAG, "Failed to start TFT Display UI task");
+            }
+        }
+        else
+        {
+            ESP_LOGW(TAG, "Failed to initialize TFT Display");
+        }
+    }
+    else
+    {
+        ESP_LOGI(TAG, "TFT Display is disabled");
+    }
+#endif
 
     /* Prompt to be printed before each line.
      * This can be customized, made dynamic, etc.
